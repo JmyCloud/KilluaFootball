@@ -139,6 +139,22 @@ services:
     networks:
       - killua-net
 
+  prisma-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: killua-prisma-migrate
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - killua-net
+    profiles:
+      - migrate
+
 volumes:
   postgres-data:
   redis-data:
