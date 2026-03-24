@@ -20,8 +20,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: killua-nextjs
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     env_file:
       - .env
     depends_on:
@@ -36,8 +36,8 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: killua-postgres
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-killua}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-killua_secret}
@@ -56,13 +56,15 @@ services:
   redis:
     image: redis:7-alpine
     container_name: killua-redis
-    ports:
-      - "6379:6379"
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    expose:
+      - "6379"
+    command: sh -c 'redis-server --requirepass "$REDIS_PASSWORD" --maxmemory 512mb --maxmemory-policy allkeys-lru'
+    env_file:
+      - .env
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$REDIS_PASSWORD\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,8 +77,8 @@ services:
       context: ./python
       dockerfile: Dockerfile
     container_name: killua-python
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     env_file:
       - .env
     depends_on:
