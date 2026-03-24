@@ -1,0 +1,646 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// A. Raw / Source-Reference Layer
+// ==========================================
+
+model RawFixtureSnapshot {
+  id          Int      @id @default(autoincrement())
+  fixtureId   Int
+  payload     Json
+  endpoint    String
+  syncedAt    DateTime @default(now())
+
+  @@index([fixtureId])
+  @@map("raw_fixture_snapshots")
+}
+
+model RawLivescoreSnapshot {
+  id          Int      @id @default(autoincrement())
+  fixtureId   Int
+  payload     Json
+  endpoint    String
+  syncedAt    DateTime @default(now())
+
+  @@index([fixtureId])
+  @@map("raw_livescore_snapshots")
+}
+
+model RawOddsSnapshot {
+  id          Int      @id @default(autoincrement())
+  fixtureId   Int
+  bookmakerIdExt Int
+  payload     Json
+  oddsType    String
+  syncedAt    DateTime @default(now())
+
+  @@index([fixtureId])
+  @@map("raw_odds_snapshots")
+}
+
+model RawNewsArticle {
+  id          Int      @id @default(autoincrement())
+  articleIdExt Int     @unique
+  payload     Json
+  syncedAt    DateTime @default(now())
+
+  @@map("raw_news_articles")
+}
+
+model RawMatchFact {
+  id          Int      @id @default(autoincrement())
+  fixtureId   Int
+  payload     Json
+  syncedAt    DateTime @default(now())
+
+  @@index([fixtureId])
+  @@map("raw_match_facts")
+}
+
+// ==========================================
+// B. Normalized Football Layer
+// ==========================================
+
+model Fixture {
+  id              Int      @id
+  leagueId        Int
+  seasonId        Int
+  stageId         Int?
+  roundId         Int?
+  stateId         Int
+  name            String
+  startingAt      DateTime
+  length          Int?
+  hasOdds         Boolean  @default(false)
+  resultInfo      String?
+  syncedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participants    FixtureParticipant[]
+  scores          FixtureScore[]
+  events          FixtureEvent[]
+  statistics      FixtureStatistic[]
+  lineups         Lineup[]
+  expectedLineups ExpectedLineup[]
+  xgTeamRows      XgTeamRow[]
+  xgPlayerRows    XgPlayerRow[]
+  oddsPrematch    OddsPrematchRow[]
+  oddsInplay      OddsInplayRow[]
+  commentaryLines CommentaryLine[]
+  matchFactRows   MatchFactRow[]
+
+  @@index([leagueId])
+  @@index([seasonId])
+  @@index([startingAt])
+  @@index([stateId])
+  @@map("fixtures")
+}
+
+model FixtureParticipant {
+  id          Int      @id @default(autoincrement())
+  fixtureId   Int
+  teamId      Int
+  teamName    String
+  location    String
+  isWinner    Boolean?
+
+  fixture     Fixture  @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, teamId])
+  @@map("fixture_participants")
+}
+
+model FixtureScore {
+  id            Int    @id @default(autoincrement())
+  fixtureId     Int
+  participantId Int
+  description   String
+  goals         Int
+
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@map("fixture_scores")
+}
+
+model FixtureEvent {
+  id              Int      @id @default(autoincrement())
+  fixtureId       Int
+  eventIdExt      Int?
+  minute          Int?
+  extraMinute     Int?
+  typeId          Int
+  participantId   Int?
+  playerId        Int?
+  relatedPlayerId Int?
+  result          String?
+  info            String?
+
+  fixture         Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@map("fixture_events")
+}
+
+model FixtureStatistic {
+  id            Int    @id @default(autoincrement())
+  fixtureId     Int
+  typeId        Int
+  participantId Int
+  value         String
+  location      String?
+
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@map("fixture_statistics")
+}
+
+model Lineup {
+  id           Int    @id @default(autoincrement())
+  fixtureId    Int
+  playerId     Int
+  teamId       Int
+  typeId       Int
+  jerseyNumber Int?
+  playerName   String?
+  formationField String?
+
+  fixture      Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, playerId])
+  @@map("lineups")
+}
+
+model ExpectedLineup {
+  id           Int    @id @default(autoincrement())
+  fixtureId    Int
+  playerId     Int
+  teamId       Int
+  typeId       Int
+  jerseyNumber Int?
+  playerName   String?
+  positionId   Int?
+  formationPosition String?
+
+  fixture      Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, playerId])
+  @@map("expected_lineups")
+}
+
+model XgTeamRow {
+  id            Int    @id @default(autoincrement())
+  fixtureId     Int
+  participantId Int
+  typeId        Int
+  value         Float
+  location      String?
+  syncedAt      DateTime @default(now())
+
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, participantId, typeId])
+  @@map("xg_team_rows")
+}
+
+model XgPlayerRow {
+  id         Int    @id @default(autoincrement())
+  fixtureId  Int
+  playerId   Int
+  teamId     Int
+  typeId     Int
+  value      Float
+  syncedAt   DateTime @default(now())
+
+  fixture    Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@unique([fixtureId, playerId, typeId])
+  @@map("xg_player_rows")
+}
+
+model StandingsRow {
+  id            Int    @id @default(autoincrement())
+  leagueId      Int
+  seasonId      Int
+  stageId       Int?
+  roundId       Int?
+  groupId       Int?
+  participantId Int
+  position      Int
+  points        Int
+  result        String?
+  form          String[]
+  syncedAt      DateTime @default(now())
+
+  details       StandingsDetail[]
+
+  @@unique([seasonId, participantId, roundId])
+  @@index([leagueId])
+  @@map("standings_rows")
+}
+
+model StandingsDetail {
+  id            Int    @id @default(autoincrement())
+  standingsRowId Int
+  typeName      String
+  value         Int
+
+  standingsRow  StandingsRow @relation(fields: [standingsRowId], references: [id], onDelete: Cascade)
+
+  @@map("standings_details")
+}
+
+model StandingsCorrection {
+  id            Int      @id @default(autoincrement())
+  correctionIdExt Int    @unique
+  seasonId      Int
+  stageId       Int?
+  groupId       Int?
+  typeId        Int
+  value         Int
+  calcType      String
+  participantId Int
+  active        Boolean  @default(true)
+  syncedAt      DateTime @default(now())
+
+  @@index([seasonId])
+  @@map("standings_corrections")
+}
+
+model LiveStandingsRow {
+  id            Int    @id @default(autoincrement())
+  leagueId      Int
+  seasonId      Int
+  participantId Int
+  position      Int
+  points        Int
+  result        String?
+  syncedAt      DateTime @default(now())
+
+  @@unique([leagueId, participantId])
+  @@map("live_standings_rows")
+}
+
+model TeamSquad {
+  id            Int    @id @default(autoincrement())
+  teamId        Int
+  seasonId      Int?
+  playerId      Int
+  positionId    Int?
+  positionName  String?
+  jerseyNumber  Int?
+  playerName    String?
+  syncedAt      DateTime @default(now())
+
+  @@unique([teamId, playerId, seasonId])
+  @@map("team_squads")
+}
+
+model TeamRanking {
+  id            Int      @id @default(autoincrement())
+  rankingIdExt  Int      @unique
+  teamId        Int
+  date          DateTime
+  currentRank   Int
+  scaledScore   Float
+  syncedAt      DateTime @default(now())
+
+  @@index([teamId])
+  @@map("team_rankings")
+}
+
+model Topscorer {
+  id            Int    @id @default(autoincrement())
+  topscorerIdExt Int   @unique
+  seasonId      Int
+  playerId      Int
+  typeId        Int
+  position      Int
+  total         Int
+  participantId Int
+  playerName    String?
+  syncedAt      DateTime @default(now())
+
+  @@index([seasonId])
+  @@map("topscorers")
+}
+
+model NewsArticle {
+  id            Int      @id @default(autoincrement())
+  articleIdExt  Int      @unique
+  fixtureId     Int?
+  leagueId      Int?
+  title         String
+  type          String
+  syncedAt      DateTime @default(now())
+
+  lines         NewsLine[]
+
+  @@index([fixtureId])
+  @@map("news_articles")
+}
+
+model NewsLine {
+  id            Int    @id @default(autoincrement())
+  articleId     Int
+  content       String
+
+  article       NewsArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("news_lines")
+}
+
+model CommentaryLine {
+  id            Int      @id @default(autoincrement())
+  commentIdExt  Int      @unique
+  fixtureId     Int
+  comment       String
+  minute        Int?
+  extraMinute   Int?
+  isGoal        Boolean  @default(false)
+  isImportant   Boolean  @default(false)
+  order         Int
+  syncedAt      DateTime @default(now())
+
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@map("commentary_lines")
+}
+
+model MatchFactRow {
+  id            Int      @id @default(autoincrement())
+  factIdExt     Int      @unique
+  fixtureId     Int
+  typeId        Int
+  participant   String?
+  basis         String?
+  category      String?
+  scope         String?
+  data          Json?
+  naturalLanguage String?
+  syncedAt      DateTime @default(now())
+
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@map("match_fact_rows")
+}
+
+model OddsPrematchRow {
+  id            Int      @id @default(autoincrement())
+  oddsIdExt     Int
+  fixtureId     Int
+  marketId      Int
+  bookmakerIdExt Int
+  label         String
+  value         String
+  name          String?
+  probability   String?
+  marketName    String?
+  syncedAt      DateTime @default(now())
+
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@index([fixtureId, marketId])
+  @@map("odds_prematch_rows")
+}
+
+model OddsInplayRow {
+  id            Int      @id @default(autoincrement())
+  oddsIdExt     Int
+  fixtureId     Int
+  marketId      Int
+  bookmakerIdExt Int
+  label         String
+  value         String
+  name          String?
+  probability   String?
+  marketName    String?
+  syncedAt      DateTime @default(now())
+
+  fixture       Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@index([fixtureId])
+  @@index([fixtureId, marketId])
+  @@map("odds_inplay_rows")
+}
+
+// ==========================================
+// C. Feature Layer
+// ==========================================
+
+model FeaturesPrematch {
+  id                    Int      @id @default(autoincrement())
+  fixtureId             Int      @unique
+  homeForm              Float?
+  awayForm              Float?
+  homeAttackStrength     Float?
+  awayAttackStrength     Float?
+  homeDefenceStrength    Float?
+  awayDefenceStrength    Float?
+  homeXgTrend           Float?
+  awayXgTrend           Float?
+  homeRestDays          Int?
+  awayRestDays          Int?
+  homeCongestionScore   Float?
+  awayCongestionScore   Float?
+  homeSquadDepth        Float?
+  awaySquadDepth        Float?
+  homeLineupStrength    Float?
+  awayLineupStrength    Float?
+  homeTopScorerDep      Float?
+  awayTopScorerDep      Float?
+  homeStandingsPosition Int?
+  awayStandingsPosition Int?
+  homeStandingsPoints   Int?
+  awayStandingsPoints   Int?
+  homeRankScore         Float?
+  awayRankScore         Float?
+  h2hHomeWinRate        Float?
+  h2hDrawRate           Float?
+  h2hBttsRate           Float?
+  h2hOverRate           Float?
+  refereeFoulsPerGame   Float?
+  refereeCardsPerGame   Float?
+  refereePenaltyRate    Float?
+  computedAt            DateTime @default(now())
+
+  @@map("features_prematch")
+}
+
+model FeaturesLive {
+  id                    Int      @id @default(autoincrement())
+  fixtureId             Int      @unique
+  minute                Int?
+  homeGoals             Int?
+  awayGoals             Int?
+  homePossession        Float?
+  awayPossession        Float?
+  homeShots             Int?
+  awayShots             Int?
+  homeShotsOnTarget     Int?
+  awayShotsOnTarget     Int?
+  homeXgLive            Float?
+  awayXgLive            Float?
+  momentumScore         Float?
+  dangerousAttacks10m   Int?
+  liveTableSwing        Float?
+  marketDriftDirection  String?
+  computedAt            DateTime @default(now())
+
+  @@map("features_live")
+}
+
+model FeaturesSchedule {
+  id                    Int      @id @default(autoincrement())
+  fixtureId             Int      @unique
+  teamId                Int
+  daysSinceLastMatch    Int?
+  daysUntilNextMatch    Int?
+  matchesLast7Days      Int?
+  matchesNext14Days     Int?
+  isHighLoadCluster     Boolean  @default(false)
+  computedAt            DateTime @default(now())
+
+  @@index([fixtureId])
+  @@index([teamId])
+  @@map("features_schedule")
+}
+
+model FeaturesSquad {
+  id                    Int      @id @default(autoincrement())
+  fixtureId             Int      @unique
+  teamId                Int
+  squadSize             Int?
+  avgAge                Float?
+  depthScore            Float?
+  backupQuality         Float?
+  positionalCoverage    Float?
+  keyPlayerMissing      Boolean  @default(false)
+  keyPlayerName         String?
+  computedAt            DateTime @default(now())
+
+  @@index([fixtureId])
+  @@index([teamId])
+  @@map("features_squad")
+}
+
+model FeaturesMarket {
+  id                    Int      @id @default(autoincrement())
+  fixtureId             Int
+  market                String
+  openingOdds           Float?
+  currentOdds           Float?
+  driftDirection        String?
+  driftMagnitude        Float?
+  impliedProbability    Float?
+  syncedAt              DateTime @default(now())
+
+  @@unique([fixtureId, market])
+  @@map("features_market")
+}
+
+model FeaturesRankings {
+  id                    Int      @id @default(autoincrement())
+  fixtureId             Int      @unique
+  homeRank              Int?
+  awayRank              Int?
+  homeScaledScore       Float?
+  awayScaledScore       Float?
+  homeRankTrend         String?
+  awayRankTrend         String?
+  computedAt            DateTime @default(now())
+
+  @@map("features_rankings")
+}
+
+// ==========================================
+// D. Prediction / Signal Layer
+// ==========================================
+
+model ModelPrediction {
+  id            Int      @id @default(autoincrement())
+  fixtureId     Int
+  market        String
+  poisson       Float?
+  dixonColes    Float?
+  catboost      Float?
+  lightgbm      Float?
+  xgboost       Float?
+  sportmonks    Float?
+  ensemble      Float?
+  calibrated    Float?
+  computedAt    DateTime @default(now())
+
+  @@unique([fixtureId, market])
+  @@map("model_predictions")
+}
+
+model CalibratedProbability {
+  id            Int      @id @default(autoincrement())
+  fixtureId     Int
+  market        String
+  outcome       String
+  rawProbability Float
+  calibratedProbability Float
+  calibrationMethod String   @default("platt")
+  computedAt    DateTime @default(now())
+
+  @@unique([fixtureId, market, outcome])
+  @@map("calibrated_probabilities")
+}
+
+model BettingSignal {
+  id              Int      @id @default(autoincrement())
+  fixtureId       Int
+  market          String
+  modelProbability Float
+  fairOdds        Float
+  bookmakerOdds   Float
+  edgePercent     Float
+  confidence      Float
+  signalClass     String
+  explanation     String?
+  computedAt      DateTime @default(now())
+
+  @@unique([fixtureId, market])
+  @@index([signalClass])
+  @@map("betting_signals")
+}
+
+model AnalysisPacket {
+  id          Int      @id @default(autoincrement())
+  fixtureId   Int      @unique
+  packetType  String
+  payload     Json
+  generatedAt DateTime @default(now())
+
+  @@map("analysis_packets")
+}
+
+// ==========================================
+// Job Monitoring
+// ==========================================
+
+model JobHistory {
+  id          Int      @id @default(autoincrement())
+  jobName     String
+  status      String
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  error       String?
+  metadata    Json?
+
+  @@index([jobName])
+  @@index([startedAt])
+  @@map("job_history")
+}

@@ -1,0 +1,148 @@
+version: "3.9"
+
+services:
+  reverse-proxy:
+    image: nginx:alpine
+    container_name: killua-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - nextjs-app
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: killua-nextjs
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: killua-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-killua}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-killua_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-killuafootball}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-killua}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: killua-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+  python-model-service:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    container_name: killua-python
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+  sync-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: killua-sync-worker
+    command: node -e "console.log('sync-worker ready — implement job runner')"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+  feature-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: killua-feature-worker
+    command: node -e "console.log('feature-worker ready — implement job runner')"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+  signal-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: killua-signal-worker
+    command: node -e "console.log('signal-worker ready — implement job runner')"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - killua-net
+
+volumes:
+  postgres-data:
+  redis-data:
+
+networks:
+  killua-net:
+    driver: bridge

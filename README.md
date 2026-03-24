@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# KilluaFootball — Football Intelligence & Betting Signal Engine
 
-## Getting Started
+Professional football analysis engine powered by **SportMonks API 3.0**.  
+Transforms structured football data into pre-match analysis packets, live analysis packets, probabilistic betting signals, and AI-powered explanations.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Layer | Technology |
+|-------|-----------|
+| **Frontend / API** | Next.js (TypeScript, Tailwind CSS) |
+| **Database** | PostgreSQL 16 |
+| **Cache / Queue** | Redis OSS 7 |
+| **Model Service** | Python 3.12, FastAPI |
+| **ML Models** | Poisson, Dixon-Coles, CatBoost, LightGBM, XGBoost |
+| **Reverse Proxy** | Nginx |
+| **Container** | Docker + Docker Compose |
+| **Target OS** | Ubuntu 24.04 LTS (Cloud VPS 20) |
+
+## Supported Competitions (v1)
+
+| ID | Competition | Country |
+|----|------------|---------|
+| 2 | Champions League | Europe |
+| 8 | Premier League | England |
+| 82 | Bundesliga | Germany |
+| 301 | Ligue 1 | France |
+| 384 | Serie A | Italy |
+| 564 | La Liga | Spain |
+
+## Markets (v1)
+
+- **1X2** (Full-time result)
+- **Over/Under 2.5**
+- **BTTS** (Both Teams To Score)
+
+## Project Structure
+
+```
+src/
+  config/          # Centralized configuration (competitions, bookmaker, markets, etc.)
+  lib/
+    sportmonks/    # SportMonks HTTP client, includes, filters, errors
+    storage/       # Prisma (PostgreSQL) + Redis cache helpers
+    analysis/      # Analysis packet assembly (TODO)
+  services/        # Endpoint wrappers per domain (fixtures, odds, xg, standings, etc.)
+  jobs/            # Sync & compute jobs (reference, pre-match, live, features, signals)
+  types/           # TypeScript type definitions (sportmonks, analysis, signals)
+  app/             # Next.js App Router pages & API routes
+python/
+  service/         # FastAPI model service (health, predict endpoints)
+  training/        # Model training scripts (TODO)
+  inference/       # Model inference logic (TODO)
+  calibration/     # Probability calibration (TODO)
+  backtesting/     # Backtesting framework (TODO)
+prisma/
+  schema.prisma    # Full database schema (4 layers + job monitoring)
+nginx/
+  nginx.conf       # Reverse proxy configuration
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick Start (Local Development)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# 1. Copy environment file
+cp .env.example .env
+# 2. Edit .env with your SportMonks API token and database credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# 3. Install dependencies
+npm install
 
-## Learn More
+# 4. Generate Prisma client
+npx prisma generate
 
-To learn more about Next.js, take a look at the following resources:
+# 5. Start dev server
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docker Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# 1. Copy and configure environment
+cp .env.example .env
 
-## Deploy on Vercel
+# 2. Build and start all services
+docker compose up -d --build
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# 3. Run database migrations
+docker compose exec nextjs-app npx prisma migrate deploy
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Key Constraints
+
+- **Bookmaker 35 only** — all odds sync uses bookmaker ID `35`
+- **Standard Odds only** — no Premium Odds in v1
+- **6 competitions only** — controlled from `src/config/competitions.ts`
+- **Free/open-source models only** — no paid prediction APIs
+- **LLMs for explanation only** — real predictions from statistical + ML models
