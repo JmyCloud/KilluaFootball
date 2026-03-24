@@ -5,6 +5,8 @@ import { syncPreMatch } from "@/jobs/sync-pre-match";
 import { syncLiveTrigger } from "@/jobs/sync-live-trigger";
 import { syncLiveRefresh } from "@/jobs/sync-live-refresh";
 import { syncFixtureSchedules } from "@/jobs/sync-schedules";
+import { recomputeFeatures } from "@/jobs/recompute-features";
+import { recomputeSignals } from "@/jobs/recompute-signals";
 
 const WORKER_TYPE = process.env.WORKER_TYPE || "sync";
 
@@ -46,9 +48,7 @@ async function startFeatureWorker() {
   console.log("[runner] Starting FEATURE worker...");
   // Feature recompute every 10 minutes
   new CronJob("*/10 * * * *", () => {
-    runJob("recompute-features", async () => {
-      console.log("[recompute-features] Feature pipeline placeholder");
-    }, 300);
+    runJob("recompute-features", recomputeFeatures, 300);
   }, null, true);
 
   console.log("[runner] FEATURE worker scheduled.");
@@ -58,9 +58,7 @@ async function startSignalWorker() {
   console.log("[runner] Starting SIGNAL worker...");
   // Signal recompute every 15 minutes
   new CronJob("*/15 * * * *", () => {
-    runJob("recompute-signals", async () => {
-      console.log("[recompute-signals] Signal pipeline placeholder");
-    }, 300);
+    runJob("recompute-signals", recomputeSignals, 300);
   }, null, true);
 
   console.log("[runner] SIGNAL worker scheduled.");
