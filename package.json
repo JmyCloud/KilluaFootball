@@ -12,22 +12,24 @@
     "worker:signal": "WORKER_TYPE=signal tsx src/workers/runner.ts"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@radix-ui/react-slot": "^1.2.4",
     "axios": "^1.13.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cron": "^4.4.0",
-    "tsx": "^4.19.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "ioredis": "^5.10.1",
     "lucide-react": "^1.0.1",
     "next": "16.2.1",
+    "pg": "^8.20.0",
     "prisma": "^7.5.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.5.0",
+    "tsx": "^4.19.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
