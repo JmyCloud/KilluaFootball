@@ -92,8 +92,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: builder
     container_name: killua-sync-worker
-    command: node -e "console.log('sync-worker ready — implement job runner')"
+    command: npx tsx src/workers/runner.ts
+    environment:
+      - WORKER_TYPE=sync
     env_file:
       - .env
     depends_on:
@@ -109,8 +112,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: builder
     container_name: killua-feature-worker
-    command: node -e "console.log('feature-worker ready — implement job runner')"
+    command: npx tsx src/workers/runner.ts
+    environment:
+      - WORKER_TYPE=feature
     env_file:
       - .env
     depends_on:
@@ -126,8 +132,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: builder
     container_name: killua-signal-worker
-    command: node -e "console.log('signal-worker ready — implement job runner')"
+    command: npx tsx src/workers/runner.ts
+    environment:
+      - WORKER_TYPE=signal
     env_file:
       - .env
     depends_on:
