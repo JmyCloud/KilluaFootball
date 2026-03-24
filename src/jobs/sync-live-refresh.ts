@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/storage/prisma";
 import { BOOKMAKER_ID } from "@/config/bookmaker";
 import { getFixtureLive } from "@/services/fixtures";
 import { getInplayOdds } from "@/services/odds";
@@ -42,8 +41,8 @@ export async function syncLiveRefresh(changedFixtureIds: number[]) {
                 liveStandingsRes.data
               );
             }
-          } catch {
-            console.warn(`[sync-live-refresh] Live standings unavailable for league ${leagueId}`);
+          } catch (standingsErr) {
+            console.warn(`[sync-live-refresh] Live standings unavailable for league ${leagueId}:`, standingsErr);
           }
         }
       }

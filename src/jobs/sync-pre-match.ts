@@ -5,7 +5,7 @@ import { getFixturePrematch } from "@/services/fixtures";
 import { getPreMatchOdds } from "@/services/odds";
 import { getPreMatchNewsUpcoming } from "@/services/news";
 import { getMatchFacts } from "@/services/matchFacts";
-import { storeRawFixture, storeRawOdds, storeRawMatchFact } from "@/lib/ingestion";
+import { storeRawFixture, storeRawOdds, storeRawMatchFact, storeRawNews } from "@/lib/ingestion";
 import { normalizeFixture, normalizeOddsPrematch, normalizeMatchFacts, normalizeNews } from "@/lib/normalization";
 
 export async function syncPreMatch() {
@@ -61,6 +61,9 @@ export async function syncPreMatch() {
   try {
     const newsArticles = await getPreMatchNewsUpcoming();
     if (newsArticles.length) {
+      for (const article of newsArticles) {
+        await storeRawNews(article.id, article);
+      }
       await normalizeNews(newsArticles);
       console.log(`[sync-pre-match] → ${newsArticles.length} news articles`);
     }

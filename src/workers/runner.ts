@@ -29,9 +29,13 @@ async function startSyncWorker() {
 
   // Live trigger every 15 seconds
   setInterval(async () => {
-    const ids = await syncLiveTrigger();
-    if (ids.length > 0) {
-      await runJob("sync-live-refresh", () => syncLiveRefresh(ids), 60);
+    try {
+      const ids = await syncLiveTrigger();
+      if (ids.length > 0) {
+        await runJob("sync-live-refresh", () => syncLiveRefresh(ids), 60);
+      }
+    } catch (err) {
+      console.error("[sync-live-trigger] Error polling livescores:", err);
     }
   }, 15_000);
 

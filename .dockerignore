@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+*.md
+.vscode
+.idea
+docker-compose.yml
+scripts
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
